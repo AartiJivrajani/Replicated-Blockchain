@@ -20,10 +20,11 @@ var ClientPortMap = map[int]int{
 }
 
 type Block struct {
-	FromId  int     `json:"from_id"`
-	ToId    int     `json:"to_id"`
-	Amount  float64 `json:"amount"`
-	Message string  `json:"message,omitempty"`
+	FromId  int           `json:"from_id"`
+	ToId    int           `json:"to_id"`
+	Amount  float64       `json:"amount"`
+	Message string        `json:"message,omitempty"`
+	Clock   *LamportClock `json:"clock"`
 }
 
 type Peer struct {
@@ -37,6 +38,7 @@ type ClientMessage struct {
 	Log     []*Block      `json:"log"`
 	Message string        `json:"message"`
 	Clock   *LamportClock `json:"clock"`
+	TwoDTT  [][]int       `json:"time_table"`
 }
 
 type LogMessage struct {
@@ -46,16 +48,14 @@ type Log struct {
 	LogList []*LogMessage
 }
 
-type TwoDTT struct {
-}
-
 type Txn struct {
-	FromClient int     `json:"from_client"`
-	ToClient   int     `json:"to_client"`
-	Type       string  `json:"txn_type"`
-	Amount     float64 `json:"amount,omitempty"`
-	BalanceOf  int     `json:"balance_of,omitempty"`
-	Message    string  `json:"message,omitempty"`
+	FromClient int           `json:"from_client"`
+	ToClient   int           `json:"to_client"`
+	Type       string        `json:"txn_type"`
+	Amount     float64       `json:"amount,omitempty"`
+	BalanceOf  int           `json:"balance_of,omitempty"`
+	Message    string        `json:"message,omitempty"`
+	Clock      *LamportClock `json:"clock"`
 }
 
 type LamportClock struct {

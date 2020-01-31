@@ -3,10 +3,48 @@ package wuu_bernstein
 import (
 	"Replicated-Blockchain/common"
 	"context"
+	"encoding/json"
 	"fmt"
 
 	log "github.com/Sirupsen/logrus"
 )
+
+func (client *BlockClient) sendMessageOverWire(ctx context.Context, message *common.ClientMessage) {
+	var (
+		err      error
+		jMessage []byte
+	)
+	jMessage, err = json.Marshal(message)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error":     err.Error(),
+			"to_client": message.ToId,
+			"message":   message,
+		}).Error("error marshalling the general message")
+		return
+	}
+	_, err = client.Peers[client.ClientId].Write(jMessage)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error":     err.Error(),
+			"to_client": message.ToId,
+		}).Error("error writing general message to the connection")
+		return
+	}
+	return
+}
+
+func (client *BlockClient) SendMessageToClients(ctx context.Context, txn *common.Txn) {
+	clientMessage := &common.ClientMessage{
+		FromId:  client.ClientId,
+		ToId:    txn.ToClient,
+		Message: txn.Message,
+		Clock:   txn.Clock,
+		TwoDTT:  client.TwoDTT,
+	}
+	clientMessage.Log = client.DecideLogForSending(ctx)
+	client.sendMessageOverWire(ctx, clientMessage)
+}
 
 func (client *BlockClient) SendAmount(ctx context.Context, request *common.Txn) (string, error) {
 	var (
@@ -32,10 +70,9 @@ func (client *BlockClient) SendAmount(ctx context.Context, request *common.Txn) 
 		FromId: request.FromClient,
 		ToId:   request.ToClient,
 		Amount: request.Amount,
+		Clock:  request.Clock,
 	}
 	client.Log.PushBack(block)
-	// TODO: update the 2D-TT??
-
 	return common.TxnSuccess, nil
 }
 
@@ -65,7 +102,10 @@ func (client *BlockClient) ProcessEvent(ctx context.Context, request *common.Txn
 		message string
 	)
 	// check the request, and based on it, take action
-	common.UpdateGlobalClock(ctx, 0, client.ClientId, true)
+	UpdateGlobalClock(ctx, 0, client.ClientId, true)
+	// update the table for the client itself. Since the client knows MOST about its own events.
+	client.UpdateTable(ctx)
+
 	switch request.Type {
 	case common.SendAmount:
 		message, err = client.SendAmount(ctx, request)

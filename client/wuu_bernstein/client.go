@@ -32,47 +32,24 @@ type BlockClient struct {
 	Log      *list.List
 }
 
-func (client *BlockClient) sendMessageOverWire(ctx context.Context, message *common.ClientMessage) {
-	var (
-		err      error
-		jMessage []byte
-	)
-	jMessage, err = json.Marshal(message)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"error":     err.Error(),
-			"to_client": message.ToId,
-			"message":   message,
-		}).Error("error marshalling the general message")
+// UpdateGlobalClock updates the global clock of the client.
+// when local is set to true, it means that only the GlobalClock has to be updated. No comparision needed
+func UpdateGlobalClock(ctx context.Context, currTimestamp int, clientId int, local bool) {
+	ClockLock.Lock()
+	defer ClockLock.Unlock()
+	if local {
+		GlobalClock += 1
 		return
 	}
-	_, err = client.Peers[client.ClientId].Write(jMessage)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"error":     err.Error(),
-			"to_client": message.ToId,
-		}).Error("error writing general message to the connection")
-		return
+	if currTimestamp > GlobalClock {
+		GlobalClock = currTimestamp + 1
+	} else {
+		GlobalClock += 1
 	}
-	return
-}
-
-func (client *BlockClient) SendMessageToClients(ctx context.Context, txn *common.Txn) {
-	var (
-		blockchain []*common.Block
-	)
-	blockchain = common.ListToArray(client.Log)
-	clientMessage := &common.ClientMessage{
-		FromId:  client.ClientId,
-		ToId:    txn.ToClient,
-		Log:     blockchain,
-		Message: txn.Message,
-		Clock: &common.LamportClock{
-			PID:   client.ClientId,
-			Clock: GlobalClock,
-		},
-	}
-	client.sendMessageOverWire(ctx, clientMessage)
+	log.WithFields(log.Fields{
+		"client_id": clientId,
+		"clock":     GlobalClock,
+	}).Info("updated the clock")
 }
 
 func (client *BlockClient) processIncomingMessages(ctx context.Context) {
@@ -83,7 +60,7 @@ func (client *BlockClient) processIncomingMessages(ctx context.Context) {
 	for {
 		select {
 		case msg = <-clientMsgChan:
-			common.UpdateGlobalClock(ctx, msg.Clock.Clock, client.ClientId, false)
+			UpdateGlobalClock(ctx, msg.Clock.Clock, client.ClientId, false)
 			// TODO:
 			// 1. Update the current log
 			// 2. Update the 2dtt
@@ -261,6 +238,10 @@ func (client *BlockClient) startUserInteractions(ctx context.Context) {
 				Amount:     0,
 				BalanceOf:  balanceOfClientId,
 				Message:    "",
+				Clock: &common.LamportClock{
+					PID:   client.ClientId,
+					Clock: GlobalClock,
+				},
 			}
 			client.ProcessEvent(ctx, txn)
 		case "Transfer":
@@ -298,6 +279,10 @@ func (client *BlockClient) startUserInteractions(ctx context.Context) {
 				Amount:     amount,
 				BalanceOf:  0,
 				Message:    "",
+				Clock: &common.LamportClock{
+					PID:   client.ClientId,
+					Clock: GlobalClock,
+				},
 			}
 			client.ProcessEvent(ctx, txn)
 		case "Send Message":
@@ -333,6 +318,10 @@ func (client *BlockClient) startUserInteractions(ctx context.Context) {
 				Amount:     0,
 				BalanceOf:  0,
 				Message:    message,
+				Clock: &common.LamportClock{
+					PID:   client.ClientId,
+					Clock: GlobalClock,
+				},
 			}
 			client.ProcessEvent(ctx, txn)
 		}

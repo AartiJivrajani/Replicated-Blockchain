@@ -1,7 +1,6 @@
 package common
 
 import (
-	"NonReplicated-Blockchain/common"
 	"fmt"
 	"net"
 	"strconv"
@@ -15,13 +14,13 @@ func StartConnectionListener(clientId int) (net.Listener, error) {
 		err      error
 		listener net.Listener
 	)
-	PORT = ":" + strconv.Itoa(common.ClientPortMap[clientId])
+	PORT = ":" + strconv.Itoa(ClientPortMap[clientId])
 	listener, err = net.Listen("tcp", PORT)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error":       err.Error(),
 			"client_id":   clientId,
-			"client_port": common.ClientPortMap[clientId],
+			"client_port": ClientPortMap[clientId],
 		}).Error("error starting a listener on the port")
 		return nil, fmt.Errorf("error starting a listener on the port")
 	}
