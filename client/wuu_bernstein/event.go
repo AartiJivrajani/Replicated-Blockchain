@@ -23,7 +23,7 @@ func (client *BlockClient) sendMessageOverWire(ctx context.Context, message *com
 		}).Error("error marshalling the general message")
 		return
 	}
-	_, err = client.Peers[client.ClientId].Write(jMessage)
+	_, err = client.Peers[message.ToId].Write(jMessage)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"error":     err.Error(),
@@ -42,7 +42,7 @@ func (client *BlockClient) SendMessageToClients(ctx context.Context, txn *common
 		Clock:   txn.Clock,
 		TwoDTT:  client.TwoDTT,
 	}
-	clientMessage.Log = client.DecideLogForSending(ctx)
+	clientMessage.Log = client.DecideLogForSending(ctx, txn.ToClient)
 	client.sendMessageOverWire(ctx, clientMessage)
 }
 
@@ -67,10 +67,11 @@ func (client *BlockClient) SendAmount(ctx context.Context, request *common.Txn) 
 		return common.TxnIncorrect, nil
 	}
 	block = &common.Block{
-		FromId: request.FromClient,
-		ToId:   request.ToClient,
-		Amount: request.Amount,
-		Clock:  request.Clock,
+		FromId:        request.FromClient,
+		ToId:          request.ToClient,
+		Amount:        request.Amount,
+		Clock:         request.Clock,
+		EventSourceId: client.ClientId,
 	}
 	client.Log.PushBack(block)
 	return common.TxnSuccess, nil
@@ -117,28 +118,28 @@ func (client *BlockClient) ProcessEvent(ctx context.Context, request *common.Txn
 			}).Error("error sending amount to client")
 			return
 		}
-		log.Info("===========================================================")
+		log.Info("=====================================================================")
 		log.WithFields(log.Fields{
 			"client_id": client.ClientId,
 		}).Info(message)
-		log.Info("===========================================================")
+		log.Info("=====================================================================")
 	case common.GetBalance:
 		balance, _ = client.GetBalance(ctx, request)
-		log.Info("===========================================================")
+		log.Info("=====================================================================")
 		log.WithFields(log.Fields{
 			"client_id":         client.ClientId,
 			"balance":           balance,
 			"balance of client": request.BalanceOf,
-		}).Info("BALANCE!")
-		log.Info("===========================================================")
+		}).Info("BALANCE")
+		log.Info("=====================================================================")
 	case common.SendMessage:
 		client.SendMessageToClients(ctx, request)
-		log.Info("===========================================================")
+		log.Info("=====================================================================")
 		log.WithFields(log.Fields{
 			"client_id":    client.ClientId,
 			"to_client_id": request.ToClient,
 		}).Info("MESSAGE SENT TO")
-		log.Info("===========================================================")
+		log.Info("=====================================================================")
 	}
-	<-showNextPrompt
+	//showNextPrompt <- true
 }

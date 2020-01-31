@@ -3,21 +3,35 @@ package wuu_bernstein
 import (
 	"Replicated-Blockchain/common"
 	"context"
+	"fmt"
+	log "github.com/Sirupsen/logrus"
 	"math"
 )
 
-func (client *BlockClient) DecideLogForSending(ctx context.Context) []*common.Block {
+func (client *BlockClient) UpdateLog(_ context.Context, newLog []*common.Block) {
+	for _, block := range newLog {
+		client.Log.PushBack(block)
+	}
+}
+
+func (client *BlockClient) DecideLogForSending(ctx context.Context, receiverId int) []*common.Block {
 	// iterate over all the logs in the current blockchain
 	// collect all the logs which NEED to be transferred using the hasRecord Relationship
 	// send the log and the timetable
 	var (
 		arr = make([]*common.Block, 0)
 	)
+	log.WithFields(log.Fields{
+		"log": client.PrintLog(ctx),
+	}).Info("Log before deciding")
 	for block := client.Log.Front(); block != nil; block = block.Next() {
-		if !client.HasRecord(ctx, block.Value.(*common.Block)) {
+		if !client.HasRecord(ctx, block.Value.(*common.Block), receiverId) {
 			arr = append(arr, block.Value.(*common.Block))
 		}
 	}
+	log.WithFields(log.Fields{
+		"log": arr,
+	}).Debug("log after deciding")
 	return arr
 }
 
@@ -27,10 +41,10 @@ func (client *BlockClient) UpdateTable(ctx context.Context) {
 	client.TwoDTT[client.ClientId-1][client.ClientId-1] = GlobalClock
 }
 
-func (client *BlockClient) HasRecord(ctx context.Context, block *common.Block) bool {
+func (client *BlockClient) HasRecord(ctx context.Context, block *common.Block, receiverId int) bool {
 	// firstly, get the TT<client_id>[block.fromId, block.toId]
 	// if this value is greater than the timestamp at which block event was registered, hasRecord is False
-	if client.TwoDTT[block.FromId-1][block.ToId-1] > block.Clock.Clock {
+	if client.TwoDTT[receiverId-1][block.EventSourceId-1] >= block.Clock.Clock {
 		return false
 	}
 	return true
@@ -46,4 +60,5 @@ func (client *BlockClient) UpdateFinalTable(ctx context.Context, table [][]int, 
 	for k, _ := range table {
 		client.TwoDTT[localRow][k] = int(math.Max(float64(client.TwoDTT[localRow][k]), float64(table[remoteRow][k])))
 	}
+	fmt.Println("update the final table!")
 }
