@@ -26,6 +26,7 @@ type Block struct {
 	Amount        float64       `json:"amount"`
 	Message       string        `json:"message,omitempty"`
 	Clock         *LamportClock `json:"clock"`
+	TxnType       string        `json:"txn_type"`
 }
 
 type Peer struct {

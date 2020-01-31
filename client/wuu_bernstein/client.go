@@ -20,7 +20,6 @@ var (
 	clientMsgChan = make(chan (*common.ClientMessage))
 	GlobalClock   = 0
 	ClockLock     sync.Mutex
-	//showNextPrompt = make(chan bool)
 )
 
 type BlockClient struct {
@@ -56,7 +55,6 @@ func UpdateGlobalClock(ctx context.Context, currTimestamp int, clientId int, loc
 
 func (client *BlockClient) processIncomingMessages(ctx context.Context) {
 	for {
-		//fmt.Println("////////////////in for")
 		select {
 		case msg := <-clientMsgChan:
 			log.WithFields(log.Fields{
@@ -201,7 +199,8 @@ func NewClient(ctx context.Context, clientId int) *BlockClient {
 func (client *BlockClient) PrintLog(ctx context.Context) string {
 	var l string
 	for block := client.Log.Front(); block != nil; block = block.Next() {
-		l = l + strconv.Itoa(block.Value.(*common.Block).EventSourceId) + "(" + strconv.Itoa(block.Value.(*common.Block).Clock.Clock) + ")"
+		l = l + strconv.Itoa(block.Value.(*common.Block).EventSourceId) + "(" + strconv.Itoa(block.Value.(*common.Block).Clock.Clock) +
+			") [" + block.Value.(*common.Block).TxnType + "]"
 		if block.Next() != nil {
 			l = l + "->"
 		}

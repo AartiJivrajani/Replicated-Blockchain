@@ -3,15 +3,22 @@ package wuu_bernstein
 import (
 	"Replicated-Blockchain/common"
 	"context"
-	"fmt"
 	log "github.com/Sirupsen/logrus"
 	"math"
 )
 
-func (client *BlockClient) UpdateLog(_ context.Context, newLog []*common.Block) {
+func (client *BlockClient) UpdateLog(ctx context.Context, newLog []*common.Block) {
+	log.Info(common.Stars)
+	log.WithFields(log.Fields{
+		"log": client.PrintLog(ctx),
+	}).Info("Log - before update")
 	for _, block := range newLog {
 		client.Log.PushBack(block)
 	}
+	log.WithFields(log.Fields{
+		"log": client.PrintLog(ctx),
+	}).Info("Log - after update")
+	log.Info(common.Stars)
 }
 
 func (client *BlockClient) DecideLogForSending(ctx context.Context, receiverId int) []*common.Block {
@@ -23,7 +30,8 @@ func (client *BlockClient) DecideLogForSending(ctx context.Context, receiverId i
 	)
 	log.WithFields(log.Fields{
 		"log": client.PrintLog(ctx),
-	}).Info("Log before deciding")
+		"table": client.TwoDTT,
+	}).Info("log/table before deciding")
 	for block := client.Log.Front(); block != nil; block = block.Next() {
 		if !client.HasRecord(ctx, block.Value.(*common.Block), receiverId) {
 			arr = append(arr, block.Value.(*common.Block))
@@ -45,12 +53,16 @@ func (client *BlockClient) HasRecord(ctx context.Context, block *common.Block, r
 	// firstly, get the TT<client_id>[block.fromId, block.toId]
 	// if this value is greater than the timestamp at which block event was registered, hasRecord is False
 	if client.TwoDTT[receiverId-1][block.EventSourceId-1] >= block.Clock.Clock {
-		return false
+		return true
 	}
-	return true
+	return false
 }
 
 func (client *BlockClient) UpdateFinalTable(ctx context.Context, table [][]int, localRow int, remoteRow int) {
+	log.Info(common.Stars)
+	log.WithFields(log.Fields{
+		"table": client.TwoDTT,
+	}).Info("2d-TT - Before update")
 	for i, _ := range table {
 		for j, _ := range table {
 			client.TwoDTT[i][j] = int(math.Max(float64(client.TwoDTT[i][j]), float64(table[i][j])))
@@ -60,5 +72,8 @@ func (client *BlockClient) UpdateFinalTable(ctx context.Context, table [][]int, 
 	for k, _ := range table {
 		client.TwoDTT[localRow][k] = int(math.Max(float64(client.TwoDTT[localRow][k]), float64(table[remoteRow][k])))
 	}
-	fmt.Println("update the final table!")
+	log.WithFields(log.Fields{
+		"table": client.TwoDTT,
+	}).Info("2d-TT - After update")
+	log.Info(common.Stars)
 }

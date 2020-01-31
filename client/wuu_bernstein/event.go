@@ -72,6 +72,7 @@ func (client *BlockClient) SendAmount(ctx context.Context, request *common.Txn) 
 		Amount:        request.Amount,
 		Clock:         request.Clock,
 		EventSourceId: client.ClientId,
+		TxnType:       request.Type,
 	}
 	client.Log.PushBack(block)
 	return common.TxnSuccess, nil
@@ -118,28 +119,28 @@ func (client *BlockClient) ProcessEvent(ctx context.Context, request *common.Txn
 			}).Error("error sending amount to client")
 			return
 		}
-		log.Info("=====================================================================")
+		log.Info(common.Dashes)
 		log.WithFields(log.Fields{
 			"client_id": client.ClientId,
 		}).Info(message)
-		log.Info("=====================================================================")
+		log.Info(common.Dashes)
 	case common.GetBalance:
 		balance, _ = client.GetBalance(ctx, request)
-		log.Info("=====================================================================")
+		log.Info(common.Dashes)
 		log.WithFields(log.Fields{
 			"client_id":         client.ClientId,
 			"balance":           balance,
 			"balance of client": request.BalanceOf,
 		}).Info("BALANCE")
-		log.Info("=====================================================================")
+		log.Info(common.Dashes)
 	case common.SendMessage:
 		client.SendMessageToClients(ctx, request)
-		log.Info("=====================================================================")
+		log.Info(common.Dashes)
 		log.WithFields(log.Fields{
 			"client_id":    client.ClientId,
 			"to_client_id": request.ToClient,
 		}).Info("MESSAGE SENT TO")
-		log.Info("=====================================================================")
+		log.Info(common.Dashes)
 	}
 	//showNextPrompt <- true
 }
