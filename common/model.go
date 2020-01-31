@@ -20,11 +20,12 @@ var ClientPortMap = map[int]int{
 }
 
 type Block struct {
-	FromId  int           `json:"from_id"`
-	ToId    int           `json:"to_id"`
-	Amount  float64       `json:"amount"`
-	Message string        `json:"message,omitempty"`
-	Clock   *LamportClock `json:"clock"`
+	EventSourceId int           `json:"event_source_id"`
+	FromId        int           `json:"from_id"`
+	ToId          int           `json:"to_id"`
+	Amount        float64       `json:"amount"`
+	Message       string        `json:"message,omitempty"`
+	Clock         *LamportClock `json:"clock"`
 }
 
 type Peer struct {
