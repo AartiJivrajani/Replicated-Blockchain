@@ -11,7 +11,7 @@ import (
 func (client *BlockClient) SendAmount(ctx context.Context, request *common.Txn) (*common.ClientResponse, error) {
 	var (
 		block   *common.Block
-		balance float32
+		balance float64
 	)
 	if request.FromClient != client.ClientId {
 		log.WithFields(log.Fields{
@@ -36,15 +36,17 @@ func (client *BlockClient) SendAmount(ctx context.Context, request *common.Txn) 
 		Amount: request.Amount,
 	}
 	client.Log.PushBack(block)
+	// TODO: update the 2D-TT??
+
 	return &common.ClientResponse{Message: common.TxnSuccess}, nil
 }
 
-func (client *BlockClient) GetBalance(ctx context.Context, request *common.Txn) (float32, error) {
+func (client *BlockClient) GetBalance(ctx context.Context, request *common.Txn) (float64, error) {
 	var (
-		balance float32
+		balance float64
 	)
 	if client.Log.Front() == nil {
-		return float32(10), nil
+		return float64(10), nil
 	}
 	balance = 10
 	for block := client.Log.Front(); block != nil; block = block.Next() {
@@ -60,17 +62,24 @@ func (client *BlockClient) GetBalance(ctx context.Context, request *common.Txn) 
 
 func (client *BlockClient) ProcessEvent(ctx context.Context, request *common.Txn) {
 	var (
-		balance        float32
+		balance        float64
 		ClientResponse *common.ClientResponse
+		err            error
 	)
 	// check the request, and based on it, take action
+	common.UpdateGlobalClock(ctx, 0, client.ClientId, true)
 	switch request.Type {
 	case common.SendAmount:
-		ClientResponse, _ = client.SendAmount(ctx, request)
+		ClientResponse, err = client.SendAmount(ctx, request)
+		if err != nil {
+
+		}
+
 	case common.GetBalance:
 		balance, _ = client.GetBalance(ctx, request)
 		ClientResponse = &common.ClientResponse{Message: "BALANCE", Balance: balance}
 	case common.SendMessage:
-		pass
+		client.SendMessageToClients(ctx, request)
 	}
+	// TODO: Send the clientResponse back on the wire.
 }

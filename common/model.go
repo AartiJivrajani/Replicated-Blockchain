@@ -1,6 +1,8 @@
 package common
 
-import "net"
+import (
+	"net"
+)
 
 var (
 	SendAmount  = "SEND AMOUNT"
@@ -18,9 +20,10 @@ var ClientPortMap = map[int]int{
 }
 
 type Block struct {
-	FromId int     `json:"from_id"`
-	ToId   int     `json:"to_id"`
-	Amount float32 `json:"amount"`
+	FromId  int     `json:"from_id"`
+	ToId    int     `json:"to_id"`
+	Amount  float64 `json:"amount"`
+	Message string  `json:"message,omitempty"`
 }
 
 type Peer struct {
@@ -30,10 +33,14 @@ type Peer struct {
 
 type ClientResponse struct {
 	Message string  `json:"message"`
-	Balance float32 `json:"balance,omitempty"`
+	Balance float64 `json:"balance,omitempty"`
 }
 
 type ClientMessage struct {
+	FromId  int      `json:"from_id"`
+	ToId    int      `json:"to_id"`
+	Log     []*Block `json:"log"`
+	Message string   `json:"string"`
 }
 
 type LogMessage struct {
@@ -50,6 +57,7 @@ type Txn struct {
 	FromClient int     `json:"from_client"`
 	ToClient   int     `json:"to_client"`
 	Type       string  `json:"txn_type"`
-	Amount     float32 `json:"amount,omitempty"`
+	Amount     float64 `json:"amount,omitempty"`
 	BalanceOf  int     `json:"balance_of,omitempty"`
+	Message    string  `json:"message,omitempty"`
 }
