@@ -67,6 +67,10 @@ func (client *BlockClient) SendMessageToClients(ctx context.Context, txn *common
 		ToId:    txn.ToClient,
 		Log:     blockchain,
 		Message: txn.Message,
+		Clock: &common.LamportClock{
+			PID:   client.ClientId,
+			Clock: GlobalClock,
+		},
 	}
 	client.sendMessageOverWire(ctx, clientMessage)
 }
@@ -78,8 +82,11 @@ func (client *BlockClient) processIncomingMessages(ctx context.Context) {
 
 	for {
 		select {
-		case msg := <-clientMsgChan:
-
+		case msg = <-clientMsgChan:
+			common.UpdateGlobalClock(ctx, msg.Clock.Clock, client.ClientId, false)
+			// TODO:
+			// 1. Update the current log
+			// 2. Update the 2dtt
 		}
 	}
 }
@@ -170,7 +177,7 @@ func (client *BlockClient) Start(ctx context.Context) {
 	// connect to the peers first before proceeding to the other tasks.
 	client.createConnectionTopology(ctx)
 	go client.listenToPeers(ctx)
-	// TODO: start listening to the user interface
+	go client.startUserInteractions(ctx)
 }
 
 func NewClient(ctx context.Context, clientId int) *BlockClient {

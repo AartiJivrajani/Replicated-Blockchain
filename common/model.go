@@ -31,16 +31,12 @@ type Peer struct {
 	Conn     net.Conn
 }
 
-type ClientResponse struct {
-	Message string  `json:"message"`
-	Balance float64 `json:"balance,omitempty"`
-}
-
 type ClientMessage struct {
-	FromId  int      `json:"from_id"`
-	ToId    int      `json:"to_id"`
-	Log     []*Block `json:"log"`
-	Message string   `json:"string"`
+	FromId  int           `json:"from_id"`
+	ToId    int           `json:"to_id"`
+	Log     []*Block      `json:"log"`
+	Message string        `json:"message"`
+	Clock   *LamportClock `json:"clock"`
 }
 
 type LogMessage struct {
@@ -60,4 +56,9 @@ type Txn struct {
 	Amount     float64 `json:"amount,omitempty"`
 	BalanceOf  int     `json:"balance_of,omitempty"`
 	Message    string  `json:"message,omitempty"`
+}
+
+type LamportClock struct {
+	PID   int `json:"pid"`
+	Clock int `json:"clock"`
 }

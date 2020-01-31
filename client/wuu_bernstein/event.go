@@ -8,7 +8,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-func (client *BlockClient) SendAmount(ctx context.Context, request *common.Txn) (*common.ClientResponse, error) {
+func (client *BlockClient) SendAmount(ctx context.Context, request *common.Txn) (string, error) {
 	var (
 		block   *common.Block
 		balance float64
@@ -19,16 +19,14 @@ func (client *BlockClient) SendAmount(ctx context.Context, request *common.Txn) 
 			"to_client_id":      request.ToClient,
 			"current_client_id": client.ClientId,
 		}).Error("Sorry! You can only transfer money from your account!")
-		return nil, fmt.Errorf("Transfering money for another account initiated.")
+		return "", fmt.Errorf("Transfering money for another account initiated.")
 	}
 	balance, _ = client.GetBalance(ctx, &common.Txn{
 		BalanceOf: request.BalanceOf,
 		Type:      common.GetBalance,
 	})
 	if balance < request.Amount {
-		return &common.ClientResponse{
-			Message: common.TxnIncorrect,
-		}, nil
+		return common.TxnIncorrect, nil
 	}
 	block = &common.Block{
 		FromId: request.FromClient,
@@ -38,7 +36,7 @@ func (client *BlockClient) SendAmount(ctx context.Context, request *common.Txn) 
 	client.Log.PushBack(block)
 	// TODO: update the 2D-TT??
 
-	return &common.ClientResponse{Message: common.TxnSuccess}, nil
+	return common.TxnSuccess, nil
 }
 
 func (client *BlockClient) GetBalance(ctx context.Context, request *common.Txn) (float64, error) {
@@ -62,24 +60,45 @@ func (client *BlockClient) GetBalance(ctx context.Context, request *common.Txn) 
 
 func (client *BlockClient) ProcessEvent(ctx context.Context, request *common.Txn) {
 	var (
-		balance        float64
-		ClientResponse *common.ClientResponse
-		err            error
+		balance float64
+		err     error
+		message string
 	)
 	// check the request, and based on it, take action
 	common.UpdateGlobalClock(ctx, 0, client.ClientId, true)
 	switch request.Type {
 	case common.SendAmount:
-		ClientResponse, err = client.SendAmount(ctx, request)
+		message, err = client.SendAmount(ctx, request)
 		if err != nil {
-
+			log.WithFields(log.Fields{
+				"error":       err.Error(),
+				"from_client": client.ClientId,
+				"to_client":   request.ToClient,
+			}).Error("error sending amount to client")
+			return
 		}
-
+		log.Info("===========================================================")
+		log.WithFields(log.Fields{
+			"client_id": client.ClientId,
+		}).Info(message)
+		log.Info("===========================================================")
 	case common.GetBalance:
 		balance, _ = client.GetBalance(ctx, request)
-		ClientResponse = &common.ClientResponse{Message: "BALANCE", Balance: balance}
+		log.Info("===========================================================")
+		log.WithFields(log.Fields{
+			"client_id":         client.ClientId,
+			"balance":           balance,
+			"balance of client": request.BalanceOf,
+		}).Info("BALANCE!")
+		log.Info("===========================================================")
 	case common.SendMessage:
 		client.SendMessageToClients(ctx, request)
+		log.Info("===========================================================")
+		log.WithFields(log.Fields{
+			"client_id":    client.ClientId,
+			"to_client_id": request.ToClient,
+		}).Info("MESSAGE SENT TO")
+		log.Info("===========================================================")
 	}
-	// TODO: Send the clientResponse back on the wire.
+	<-showNextPrompt
 }
