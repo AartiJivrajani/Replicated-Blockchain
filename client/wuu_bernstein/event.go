@@ -67,14 +67,18 @@ func (client *BlockClient) SendAmount(ctx context.Context, request *common.Txn) 
 		return common.TxnIncorrect, nil
 	}
 	block = &common.Block{
-		FromId:        request.FromClient,
-		ToId:          request.ToClient,
-		Amount:        request.Amount,
-		Clock:         request.Clock,
+		FromId: request.FromClient,
+		ToId:   request.ToClient,
+		Amount: request.Amount,
+		Clock: &common.LamportClock{
+			PID:   client.ClientId,
+			Clock: GlobalClock,
+		},
 		EventSourceId: client.ClientId,
 		TxnType:       request.Type,
 	}
 	client.Log.PushBack(block)
+	client.Map[fmt.Sprintf("%s-%s", block.Clock.PID, block.Clock.Clock)] = true
 	return common.TxnSuccess, nil
 }
 

@@ -27,6 +27,7 @@ type BlockClient struct {
 	Peers    map[int]net.Conn
 	TwoDTT   [][]int
 	Log      *list.List
+	Map      map[string]bool
 }
 
 // UpdateGlobalClock updates the global clock of the client.
@@ -193,14 +194,16 @@ func NewClient(ctx context.Context, clientId int) *BlockClient {
 		Peers:    peers,
 		TwoDTT:   twoTDTT,
 		Log:      list.New(),
+		Map:      make(map[string]bool),
 	}
 }
 
 func (client *BlockClient) PrintLog(ctx context.Context) string {
 	var l string
 	for block := client.Log.Front(); block != nil; block = block.Next() {
-		l = l + strconv.Itoa(block.Value.(*common.Block).EventSourceId) + "(" + strconv.Itoa(block.Value.(*common.Block).Clock.Clock) +
-			") [" + block.Value.(*common.Block).TxnType + "]"
+		l = l + strconv.Itoa(block.Value.(*common.Block).FromId) + ":" + strconv.Itoa(block.Value.(*common.Block).ToId) +
+			":" + fmt.Sprintf("%g", block.Value.(*common.Block).Amount) +
+			"[" + strconv.Itoa(block.Value.(*common.Block).Clock.Clock) + "]"
 		if block.Next() != nil {
 			l = l + "->"
 		}

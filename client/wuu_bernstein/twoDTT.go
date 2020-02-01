@@ -3,8 +3,10 @@ package wuu_bernstein
 import (
 	"Replicated-Blockchain/common"
 	"context"
-	log "github.com/Sirupsen/logrus"
+	"fmt"
 	"math"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 func (client *BlockClient) UpdateLog(ctx context.Context, newLog []*common.Block) {
@@ -13,7 +15,10 @@ func (client *BlockClient) UpdateLog(ctx context.Context, newLog []*common.Block
 		"log": client.PrintLog(ctx),
 	}).Info("Log - before update")
 	for _, block := range newLog {
-		client.Log.PushBack(block)
+		if _, OK := client.Map[fmt.Sprintf("%s-%s", block.Clock.PID, block.Clock.Clock)]; !OK {
+			client.Log.PushBack(block)
+			client.Map[fmt.Sprintf("%s-%s", block.Clock.PID, block.Clock.Clock)] = true
+		}
 	}
 	log.WithFields(log.Fields{
 		"log": client.PrintLog(ctx),
@@ -29,7 +34,7 @@ func (client *BlockClient) DecideLogForSending(ctx context.Context, receiverId i
 		arr = make([]*common.Block, 0)
 	)
 	log.WithFields(log.Fields{
-		"log": client.PrintLog(ctx),
+		"log":   client.PrintLog(ctx),
 		"table": client.TwoDTT,
 	}).Info("log/table before deciding")
 	for block := client.Log.Front(); block != nil; block = block.Next() {
@@ -50,11 +55,22 @@ func (client *BlockClient) UpdateTable(ctx context.Context) {
 }
 
 func (client *BlockClient) HasRecord(ctx context.Context, block *common.Block, receiverId int) bool {
-	// firstly, get the TT<client_id>[block.fromId, block.toId]
 	// if this value is greater than the timestamp at which block event was registered, hasRecord is False
+	log.WithFields(log.Fields{
+		"row": receiverId - 1,
+		"col": block.EventSourceId - 1,
+	}).Info("fetching info for: ")
 	if client.TwoDTT[receiverId-1][block.EventSourceId-1] >= block.Clock.Clock {
+		log.WithFields(log.Fields{
+			"value": client.TwoDTT[receiverId-1][block.EventSourceId-1],
+			"clock": block.Clock.Clock,
+		}).Info("returning true")
 		return true
 	}
+	log.WithFields(log.Fields{
+		"value": client.TwoDTT[receiverId-1][block.EventSourceId-1],
+		"clock": block.Clock.Clock,
+	}).Info("returning false")
 	return false
 }
 

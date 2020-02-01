@@ -25,7 +25,7 @@ func (client *BlockClient) startUserInteractions(ctx context.Context) {
 	for {
 		prompt := promptui.Select{
 			Label: "Select Transaction",
-			Items: []string{"Show Balance", "Transfer", "Send Message", "Exit"},
+			Items: []string{"Show Balance", "Transfer", "Send Message", "Print", "Exit"},
 		}
 
 		_, transactionType, err = prompt.Run()
@@ -147,6 +147,15 @@ func (client *BlockClient) startUserInteractions(ctx context.Context) {
 				},
 			}
 			client.ProcessEvent(ctx, txn)
+		case "Print":
+			log.Info(common.Stars)
+			log.WithFields(log.Fields{
+				"log": client.PrintLog(ctx),
+			}).Info("log")
+			log.WithFields(log.Fields{
+				"table": client.TwoDTT,
+			}).Info("2dtt")
+			log.Info(common.Stars)
 		}
 		//<-showNextPrompt
 	}
